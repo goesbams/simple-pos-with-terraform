@@ -13,31 +13,40 @@ Implementation of a RESTful **Point of Sale (POS)** API built using **Golang (Ec
 
 ## 🏗️ Architecture Overview
 
+Decoupled, stateless microservice architecture designed for High Availability (HA) and Autoscaling:
+
 ```mermaid
 flowchart LR
-    Client([Client / Internet]) -->|HTTP Request :3000| FW
+    Client([Client / Internet]) -->|HTTP :3000| LB[Cloud Load Balancer / Autoscaler]
 
     subgraph GCP["Google Cloud Platform (VPC Network)"]
-        FW["Firewall Rule (Allow Port 3000)"]
+        LB --> FW[Firewall Rule]
         
-        subgraph GCE["Compute Engine VM (Ubuntu)"]
-            subgraph Docker["Docker Engine"]
-                API["Golang Echo POS API Container"]
-            end
+        subgraph ComputeGroup["Stateless API Compute Group (Autoscaling)"]
+            VM1["Compute Engine VM 1 (Docker API)"]
+            VM2["Compute Engine VM 2 (Docker API)"]
         end
         
-        FW --> GCE
+        FW --> VM1
+        FW --> VM2
+        
+        subgraph DatabaseInstance["Managed Database Service"]
+            CloudSQL[("GCP Cloud SQL (PostgreSQL)")]
+        end
+        
+        VM1 -->|Private IP Connection| CloudSQL
+        VM2 -->|Private IP Connection| CloudSQL
     end
 
     classDef gcpStyle fill:#1a73e8,stroke:#174ea6,stroke-width:2px,color:#fff;
     classDef vmStyle fill:#34a853,stroke:#1e8e3e,stroke-width:2px,color:#fff;
     classDef dockerStyle fill:#2496ed,stroke:#0db7ed,stroke-width:2px,color:#fff;
-    classDef apiStyle fill:#00add8,stroke:#007d9c,stroke-width:2px,color:#fff;
+    classDef dbStyle fill:#ea4335,stroke:#c5221f,stroke-width:2px,color:#fff;
 
     class GCP gcpStyle;
-    class GCE vmStyle;
-    class Docker dockerStyle;
-    class API apiStyle;
+    class VM1,VM2 vmStyle;
+    class LB dockerStyle;
+    class CloudSQL dbStyle;
 ```
 
 ---
