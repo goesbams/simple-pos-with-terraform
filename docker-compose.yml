@@ -32,5 +32,27 @@ services:
       postgres:
         condition: service_healthy
 
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pos_api
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: "3000"
+      DB_HOST: "postgres"
+      DB_PORT: "5432"
+      DB_USER: "posuser"
+      DB_PASSWORD: "pospassword"
+      DB_NAME: "posdb"
+      MIDTRANS_SERVER_KEY: "${MIDTRANS_SERVER_KEY}"
+      MIDTRANS_CLIENT_KEY: "${MIDTRANS_CLIENT_KEY}"
+      MIDTRANS_IS_PRODUCTION: "false"
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+
 volumes:
   postgres_data:
