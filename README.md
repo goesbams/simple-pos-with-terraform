@@ -26,7 +26,7 @@ flowchart LR
         subgraph GKE["Google Kubernetes Engine (GKE Cluster)"]
             Ingress --> HPA[Horizontal Pod Autoscaler]
             
-            subgraph Pods["Stateless POS API Pods (Golang Echo)"]
+            subgraph Pods["Stateless POS API Pods"]
                 Pod1["POS API Pod 1"]
                 Pod2["POS API Pod 2"]
             end
@@ -34,12 +34,14 @@ flowchart LR
             HPA --> Pods
         end
         
-        subgraph DatabaseInstance["Managed Database Service"]
-            CloudSQL[("GCP Cloud SQL (PostgreSQL 15)")]
+        subgraph DatabaseInstance["Managed Database Service (PostgreSQL 15)"]
+            MasterDB[("Cloud SQL Primary Master (Write/Read)")]
+            SlaveDB[("Cloud SQL Read Replica (Read-Only)")]
         end
         
-        Pod1 -->|Private IP / Auth Proxy| CloudSQL
-        Pod2 -->|Private IP / Auth Proxy| CloudSQL
+        MasterDB -.->|Async Replication| SlaveDB
+        Pod1 -->|Write / Mutate| MasterDB
+        Pod2 -->|Read-Only Queries| SlaveDB
         Pods -->|HTTPS Snap API| Midtrans
     end
 
@@ -52,7 +54,7 @@ flowchart LR
     class GCP gcpStyle;
     class GKE,Ingress k8sStyle;
     class Pods,Pod1,Pod2 podStyle;
-    class CloudSQL dbStyle;
+    class MasterDB,SlaveDB dbStyle;
     class Midtrans midtransStyle;
 ```
 
