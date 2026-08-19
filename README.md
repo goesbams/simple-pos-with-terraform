@@ -3,49 +3,52 @@
 ![Go](https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat&logo=go)
 ![Echo](https://img.shields.io/badge/Echo-v4-000000?style=flat&logo=go)
 ![Midtrans](https://img.shields.io/badge/Midtrans-Payment--Gateway-FF6B00?style=flat)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-GKE-326CE5?style=flat&logo=kubernetes)
 ![Docker](https://img.shields.io/badge/Docker-Containers-2496ED?style=flat&logo=docker)
 ![Terraform](https://img.shields.io/badge/Terraform-IaC-7B42BC?style=flat&logo=terraform)
-![GCP](https://img.shields.io/badge/GCP-Compute%20Engine-4285F4?style=flat&logo=googlecloud)
+![GCP](https://img.shields.io/badge/GCP-GKE%20%26%20Cloud%20SQL-4285F4?style=flat&logo=googlecloud)
 
-Implementation of a RESTful **Point of Sale (POS)** API built using **Golang (Echo Framework)** structured with **Idiomatic Go Layout**, containerized with **Docker**, and automatically deployed to **Google Cloud Platform (GCP)** using **Terraform (Infrastructure as Code)**.
+Implementation of a RESTful **Point of Sale (POS)** API built using **Golang (Echo Framework)** structured with **Idiomatic Go Layout**, containerized with **Docker**, orchestrated on **Google Kubernetes Engine (GKE)**, and automatically deployed to **Google Cloud Platform (GCP)** using **Terraform (Infrastructure as Code)**.
 
 ---
 
 ## 🏗️ Architecture Overview
 
-Decoupled, stateless microservice architecture designed for High Availability (HA) and Autoscaling:
+Decoupled, cloud-native microservice architecture orchestrated on **GKE (Google Kubernetes Engine)** with Horizontal Pod Autoscaler (HPA) and managed **Cloud SQL**:
 
 ```mermaid
 flowchart LR
-    Client([Client / Internet]) -->|HTTP :3000| LB[Cloud Load Balancer / Autoscaler]
+    Client([Client / Internet]) -->|HTTP :3000| K8sService[GKE LoadBalancer Service]
 
     subgraph GCP["Google Cloud Platform (VPC Network)"]
-        LB --> FW[Firewall Rule]
         
-        subgraph ComputeGroup["Stateless API Compute Group (Autoscaling)"]
-            VM1["Compute Engine VM 1 (Docker API)"]
-            VM2["Compute Engine VM 2 (Docker API)"]
+        subgraph GKE["Google Kubernetes Engine (GKE Cluster)"]
+            K8sService --> HPA[Horizontal Pod Autoscaler]
+            
+            subgraph Pods["Stateless POS API Pods"]
+                Pod1["POS API Pod 1"]
+                Pod2["POS API Pod 2"]
+            end
+            
+            HPA --> Pods
         end
-        
-        FW --> VM1
-        FW --> VM2
         
         subgraph DatabaseInstance["Managed Database Service"]
             CloudSQL[("GCP Cloud SQL (PostgreSQL)")]
         end
         
-        VM1 -->|Private IP Connection| CloudSQL
-        VM2 -->|Private IP Connection| CloudSQL
+        Pod1 -->|Cloud SQL Auth Proxy / Private IP| CloudSQL
+        Pod2 -->|Cloud SQL Auth Proxy / Private IP| CloudSQL
     end
 
     classDef gcpStyle fill:#1a73e8,stroke:#174ea6,stroke-width:2px,color:#fff;
-    classDef vmStyle fill:#34a853,stroke:#1e8e3e,stroke-width:2px,color:#fff;
-    classDef dockerStyle fill:#2496ed,stroke:#0db7ed,stroke-width:2px,color:#fff;
+    classDef k8sStyle fill:#326ce5,stroke:#1b4bbd,stroke-width:2px,color:#fff;
+    classDef podStyle fill:#34a853,stroke:#1e8e3e,stroke-width:2px,color:#fff;
     classDef dbStyle fill:#ea4335,stroke:#c5221f,stroke-width:2px,color:#fff;
 
     class GCP gcpStyle;
-    class VM1,VM2 vmStyle;
-    class LB dockerStyle;
+    class GKE,K8sService k8sStyle;
+    class Pod1,Pod2 podStyle;
     class CloudSQL dbStyle;
 ```
 
@@ -124,10 +127,19 @@ simple-pos-with-terraform/
 │   ├── model/                   # Data Models & DTOs
 │   ├── repository/              # Data persistence / storage layer
 │   └── service/                 # Business logic / domain rules
+├── k8s/                         # Kubernetes Manifests (GKE Deployment)
+│   ├── deployment.yaml          # GKE API Pod deployment
+│   ├── service.yaml             # LoadBalancer Service
+│   ├── configmap.yaml           # App configuration
+│   ├── secret.yaml              # Database & Midtrans secret keys
+│   └── hpa.yaml                 # Horizontal Pod Autoscaler (Autoscaling)
+├── migrations/                  # Database migration scripts (golang-migrate)
+│   ├── 000001_create_pos_tables.up.sql
+│   └── 000001_create_pos_tables.down.sql
 ├── terraform/                   # Infrastructure as Code (GCP)
-│   ├── main.tf                  # GCP Compute Engine, VPC, & Startup Script
+│   ├── main.tf                  # GCP GKE Cluster, VPC, & Cloud SQL
 │   ├── variables.tf             # GCP Project, Region, Zone variables
-│   ├── outputs.tf               # Public IP outputs
+│   ├── outputs.tf               # Public IP & Cluster endpoints
 │   └── terraform.tfvars.example # Local environment variable example
 ├── Dockerfile                   # Multi-stage Docker build for Golang binary
 ├── docker-compose.yml           # Container orchestration for local environment
