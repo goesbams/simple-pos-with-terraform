@@ -18,14 +18,15 @@ Decoupled, cloud-native microservice architecture orchestrated on **GKE (Google 
 
 ```mermaid
 flowchart LR
-    Client([Client / Internet]) -->|HTTP :3000| K8sService[GKE LoadBalancer Service]
+    Client([Client / Cashier]) -->|HTTP :3000| Ingress[GKE Ingress / LoadBalancer]
+    Midtrans([Midtrans Gateway]) -->|Webhook POST /notification| Ingress
 
     subgraph GCP["Google Cloud Platform (VPC Network)"]
         
         subgraph GKE["Google Kubernetes Engine (GKE Cluster)"]
-            K8sService --> HPA[Horizontal Pod Autoscaler]
+            Ingress --> HPA[Horizontal Pod Autoscaler]
             
-            subgraph Pods["Stateless POS API Pods"]
+            subgraph Pods["Stateless POS API Pods (Golang Echo)"]
                 Pod1["POS API Pod 1"]
                 Pod2["POS API Pod 2"]
             end
@@ -34,22 +35,25 @@ flowchart LR
         end
         
         subgraph DatabaseInstance["Managed Database Service"]
-            CloudSQL[("GCP Cloud SQL (PostgreSQL)")]
+            CloudSQL[("GCP Cloud SQL (PostgreSQL 15)")]
         end
         
-        Pod1 -->|Cloud SQL Auth Proxy / Private IP| CloudSQL
-        Pod2 -->|Cloud SQL Auth Proxy / Private IP| CloudSQL
+        Pod1 -->|Private IP / Auth Proxy| CloudSQL
+        Pod2 -->|Private IP / Auth Proxy| CloudSQL
+        Pods -->|HTTPS Snap API| Midtrans
     end
 
     classDef gcpStyle fill:#1a73e8,stroke:#174ea6,stroke-width:2px,color:#fff;
     classDef k8sStyle fill:#326ce5,stroke:#1b4bbd,stroke-width:2px,color:#fff;
     classDef podStyle fill:#34a853,stroke:#1e8e3e,stroke-width:2px,color:#fff;
     classDef dbStyle fill:#ea4335,stroke:#c5221f,stroke-width:2px,color:#fff;
+    classDef midtransStyle fill:#ff6b00,stroke:#d45500,stroke-width:2px,color:#fff;
 
     class GCP gcpStyle;
-    class GKE,K8sService k8sStyle;
-    class Pod1,Pod2 podStyle;
+    class GKE,Ingress k8sStyle;
+    class Pods,Pod1,Pod2 podStyle;
     class CloudSQL dbStyle;
+    class Midtrans midtransStyle;
 ```
 
 ---
