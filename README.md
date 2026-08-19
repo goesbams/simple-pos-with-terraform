@@ -15,10 +15,10 @@ Implementation of a RESTful **Point of Sale (POS)** API built using **Golang (Ec
 
 ```mermaid
 flowchart LR
-    Client([Client / Internet]) -->|HTTP Request :8080| FW
+    Client([Client / Internet]) -->|HTTP Request :3000| FW
 
     subgraph GCP["Google Cloud Platform (VPC Network)"]
-        FW["Firewall Rule (Allow Port 8080)"]
+        FW["Firewall Rule (Allow Port 3000)"]
         
         subgraph GCE["Compute Engine VM (Ubuntu)"]
             subgraph Docker["Docker Engine"]
@@ -180,7 +180,7 @@ To receive automated payment status updates from Midtrans (e.g. when a QRIS paym
 1. In the Midtrans Dashboard, navigate to **SETTINGS** -> **Configuration**.
 2. Set **Payment Notification URL** to:
    ```text
-   http://<YOUR_GCP_VM_PUBLIC_IP>:8080/api/v1/payments/notification
+   http://<YOUR_GCP_VM_PUBLIC_IP>:3000/api/v1/payments/notification
    ```
 3. Save configuration. When a customer completes a payment, Midtrans sends an HTTP `POST` payload to your backend, which verifies Midtrans Signature Key, marks transaction status as `SETTLEMENT`, and deducts product stock.
 
@@ -208,7 +208,7 @@ go mod tidy
 # Start application server
 go run cmd/api/main.go
 ```
-The server will be available at `http://localhost:8080`.
+The server will be available at `http://localhost:3000`.
 
 ### 2. Run with Docker Compose
 ```bash
